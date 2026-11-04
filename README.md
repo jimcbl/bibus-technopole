@@ -1,6 +1,6 @@
 # Bibus Technopôle — Rust
 
-Click the bus icon in Ubuntu's top bar to see **three departures total**:
+Click the bus icon in Ubuntu's top bar or the macOS menu bar to see **three departures total**:
 the nearest line 2 bus and the following two, from **Technopôle** toward
 **P de Commerce via Liberté**. Times start from the moment you open the menu.
 There is no longer a 16:30 filter.
@@ -41,19 +41,27 @@ registering an icon, run `./Bibus-Technopole --check`.
 
 ## macOS
 
-The source includes a separate native menu-bar backend using AppKit through
-`tray-icon` and `tao`. Build it **on a Mac** with Rust and the Xcode Command Line
-Tools:
+The Apple Silicon build is available as `dist/Bibus-Technopole-mac-arm64.zip`.
+Unzip it, then open **Bibus Technopole.app**. You can move the app to
+**Applications** first. Quit any previous version before opening the new build.
+The app shows a white bus icon in the menu bar and has no Dock icon. Choose
+**More → Quit** to exit.
+
+The bundle is locally signed, but is not notarized by Apple. It requires an
+Apple Silicon Mac running macOS 11 or later. It does not enable startup at login.
+
+The native macOS backend uses AppKit through `tray-icon` and `tao`. To build
+from source **on a Mac**, install a current stable Rust toolchain and the Xcode
+Command Line Tools, and accept the Xcode licence if prompted:
 
 ```sh
 cargo build --release --locked
 ./target/release/bibus-technopole
 ```
 
-The macOS backend uses accessory activation policy to avoid a Dock icon.
-The supplied Linux executable cannot run on macOS. macOS runtime behaviour
-has not been tested here; the Apple Silicon target passes a cross-platform
-compile check.
+The release build and all ten unit tests pass natively on Apple Silicon.
+The menu-bar UI has not been automatically tested. To check the feeds without
+opening the UI, run `./target/release/bibus-technopole --check`.
 
 ## Build from source
 

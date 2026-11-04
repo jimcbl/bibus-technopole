@@ -2,7 +2,10 @@ use crate::{
     core::{self, Model},
     worker,
 };
-use std::time::{Duration, Instant};
+use std::{
+    sync::mpsc,
+    time::{Duration, Instant},
+};
 use tao::{
     event::{Event, StartCause},
     event_loop::{ControlFlow, EventLoop},
@@ -90,7 +93,11 @@ pub fn run() {
     let proxy = event_loop.create_proxy();
     let click_proxy = proxy.clone();
     let click_refresh = refresh.clone();
-    MenuEvent::set_event_handler(Some(move |_| {
+    // A custom handler replaces muda's default receiver, so keep the action
+    // in our own queue before waking the native event loop.
+    let (menu_events, menu_receiver) = mpsc::channel();
+    MenuEvent::set_event_handler(Some(move |event| {
+        let _ = menu_events.send(event);
         let _ = proxy.send_event(());
     }));
     TrayIconEvent::set_event_handler(Some(move |event| {
@@ -122,7 +129,7 @@ pub fn run() {
         }
         let _keep_alive = &tray;
         if let Some(menu) = native.as_mut() {
-            while let Ok(event) = MenuEvent::receiver().try_recv() {
+            while let Ok(event) = menu_receiver.try_recv() {
                 if event.id == *menu.quit.id() {
                     *control_flow = ControlFlow::Exit;
                     return;

@@ -631,9 +631,17 @@ pub fn icon_rgba() -> Vec<u8> {
                 || (9..12).contains(&x) && (20..23).contains(&y)
                 || (20..23).contains(&x) && (20..23).contains(&y)
             {
-                [255, 255, 255, 255]
+                if cfg!(target_os = "macos") {
+                    [0, 0, 0, 0]
+                } else {
+                    [255, 255, 255, 255]
+                }
             } else {
-                [23, 107, 84, 255]
+                if cfg!(target_os = "macos") {
+                    [255, 255, 255, 255]
+                } else {
+                    [23, 107, 84, 255]
+                }
             };
             pixels[(y * 32 + x) * 4..(y * 32 + x) * 4 + 4].copy_from_slice(&color);
         }
