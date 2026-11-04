@@ -18,9 +18,18 @@ jobs:
             platform: ubuntu-x86_64
           - os: macos-15
             platform: mac-arm64
+          - os: windows-2022
+            platform: windows-x86_64
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        if: runner.os == 'Windows'
+        with:
+          python-version: '3.13'
       - name: Install Rust
         run: rustup update stable --no-self-update
       - name: Check release version
@@ -54,6 +63,27 @@ jobs:
         run: |
           cargo +stable build --release --locked
           python3 scripts/package-macos.py
+      - name: Build Windows executable
+        if: runner.os == 'Windows'
+        env:
+          RUSTFLAGS: '-C target-feature=+crt-static'
+        run: |
+          cargo +stable build --release --locked --target x86_64-pc-windows-msvc
+          mkdir -p dist
+          cp target/x86_64-pc-windows-msvc/release/bibus-technopole.exe dist/Bibus-Technopole.exe
+      - name: Smoke test and package Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath ./dist/Bibus-Technopole.exe -PassThru
+          try {
+            Start-Sleep -Seconds 5
+            $app.Refresh()
+            if ($app.HasExited) { throw "Tray app exited early with code $($app.ExitCode)" }
+          } finally {
+            if (-not $app.HasExited) { Stop-Process -Id $app.Id }
+          }
+          Compress-Archive -Path dist/Bibus-Technopole.exe, README.md -DestinationPath dist/Bibus-Technopole-windows-x86_64.zip -Force
       - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.platform }}
@@ -78,14 +108,15 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" release-assets/* \
-            --verify-tag --title "$RELEASE_TAG — macOS and Ubuntu" \
+            --verify-tag --title "$RELEASE_TAG — Windows, macOS and Ubuntu" \
             --notes "$(cat <<'NOTES'
           Native menu-bar and system-tray app for the next three line 2 departures from Technopôle.
 
           - macOS: Apple Silicon, macOS 11 or later. Unzip and open Bibus Technopole.app. White menu-bar icon; fixed Quit and other menu actions. Locally signed, not notarized by Apple.
           - Ubuntu: Intel/AMD 64-bit. Extract the .tar.gz archive and run Bibus-Technopole. Requires curl and the Ubuntu AppIndicators extension. No Rust installation needed.
+          - Windows: Intel/AMD 64-bit Windows 10/11. Extract the Windows ZIP and run Bibus-Technopole.exe. The app runs in the notification area; right-click its bus icon for the menu. No installer or Rust installation needed.
           - English/French menus, live predictions, scheduled fallback, and automatic refresh.
 
-          Both platforms pass the unit tests before publishing. Desktop UI interaction is not automatically tested.
+          All three platforms pass the unit tests before publishing. Desktop UI interaction is not automatically tested.
           NOTES
           )"

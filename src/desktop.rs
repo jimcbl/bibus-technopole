@@ -6,10 +6,11 @@ use std::{
     sync::mpsc,
     time::{Duration, Instant},
 };
+#[cfg(target_os = "macos")]
+use tao::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
 use tao::{
     event::{Event, StartCause},
     event_loop::{ControlFlow, EventLoop},
-    platform::macos::{ActivationPolicy, EventLoopExtMacOS},
 };
 use tray_icon::{
     menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, Submenu},
@@ -84,8 +85,13 @@ impl NativeMenu {
 }
 
 pub fn run() {
-    let mut event_loop = EventLoop::new();
-    event_loop.set_activation_policy(ActivationPolicy::Accessory);
+    let event_loop = EventLoop::new();
+    #[cfg(target_os = "macos")]
+    let event_loop = {
+        let mut event_loop = event_loop;
+        event_loop.set_activation_policy(ActivationPolicy::Accessory);
+        event_loop
+    };
     let (refresh, results) = worker();
     let mut model = Model::new();
     let mut native: Option<NativeMenu> = None;

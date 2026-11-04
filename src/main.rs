@@ -1,8 +1,10 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 mod core;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+mod desktop;
 #[cfg(target_os = "linux")]
 mod linux;
-#[cfg(target_os = "macos")]
-mod macos;
 mod realtime;
 
 use core::{Model, Provider};
@@ -51,6 +53,6 @@ fn main() {
         );
         std::process::exit(1);
     }
-    #[cfg(target_os = "macos")]
-    macos::run();
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    desktop::run();
 }

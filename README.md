@@ -1,6 +1,6 @@
 # Bibus Technopôle — Rust
 
-Click the bus icon in Ubuntu's top bar or the macOS menu bar to see **three departures total**:
+Click the bus icon in Ubuntu's top bar, the macOS menu bar, or the Windows notification area to see **three departures total**:
 the nearest line 2 bus and the following two, from **Technopôle** toward
 **P de Commerce via Liberté**. Times start from the moment you open the menu.
 There is no longer a 16:30 filter.
@@ -66,6 +66,21 @@ The release build and all ten unit tests pass natively on Apple Silicon.
 The menu-bar UI has not been automatically tested. To check the feeds without
 opening the UI, run `./target/release/bibus-technopole --check`.
 
+## Windows
+
+Download `Bibus-Technopole-windows-x86_64.zip` from
+[Releases](https://github.com/jimcbl/bibus-technopole/releases/latest).
+Extract the archive and run **Bibus-Technopole.exe** on Intel/AMD 64-bit
+Windows 10 or 11. The app runs in the notification area beside the clock;
+you may need to expand the hidden icons. Right-click the bus icon to see the
+menu, and choose **More → Quit** to exit.
+
+No installer or Rust installation is needed. The app uses Windows' built-in
+`curl.exe` for HTTPS and does not enable startup at login. The executable is
+not code-signed. Timetables are stored under
+`%LOCALAPPDATA%\bibus-technopole-rust`, and language preferences under
+`%APPDATA%\bibus-technopole-rust`.
+
 ## Build from source
 
 With a Rust toolchain and a C linker available:
@@ -111,10 +126,10 @@ in your browser. There is no journey planning or destination arrival estimate.
 
 ## Releases
 
-Pushing a version tag such as `v0.2.2` runs `.github/workflows/release.yml`.
-The tag must match the version in `Cargo.toml`. The workflow tests both
-platforms, builds an Apple Silicon macOS app and a static x86_64 Ubuntu
-executable, and publishes both archives in a GitHub release after both builds
+Pushing a version tag such as `v0.2.3` runs `.github/workflows/release.yml`.
+The tag must match the version in `Cargo.toml`. The workflow tests all three
+platforms, builds an Apple Silicon macOS app, a static x86_64 Ubuntu
+executable, and an x86_64 Windows executable, and publishes all three archives in a GitHub release after all builds
 succeed. A manual workflow run builds downloadable artifacts without publishing.
 
 To package a local macOS release after `cargo build --release --locked`, run

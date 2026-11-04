@@ -24,6 +24,10 @@ fn path(cache: bool) -> PathBuf {
         } else {
             "Library/Application Support"
         })
+    } else if cfg!(target_os = "windows") {
+        PathBuf::from(
+            std::env::var_os(if cache { "LOCALAPPDATA" } else { "APPDATA" }).unwrap_or_default(),
+        )
     } else {
         std::env::var_os(if cache {
             "XDG_CACHE_HOME"
@@ -45,7 +49,18 @@ fn path(cache: bool) -> PathBuf {
 fn download(url: &str) -> Result<Vec<u8>, String> {
     // Use the OS HTTPS client/certificate store rather than bundling TLS libraries.
     // No shell and no user-controlled arguments; -q ignores local curl configuration.
-    let result = Command::new("curl")
+    let mut command = Command::new(if cfg!(target_os = "windows") {
+        "curl.exe"
+    } else {
+        "curl"
+    });
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        // Avoid a console window appearing on every background refresh.
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    let result = command
         .args([
             "-q",
             "--fail",
@@ -616,6 +631,8 @@ impl Model {
 pub fn open_source() {
     let _ = Command::new(if cfg!(target_os = "macos") {
         "open"
+    } else if cfg!(target_os = "windows") {
+        "explorer.exe"
     } else {
         "xdg-open"
     })
