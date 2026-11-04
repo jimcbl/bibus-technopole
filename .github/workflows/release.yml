@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: ubuntu-x86_64
+          - os: macos-15
+            platform: mac-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup update stable --no-self-update
+      - name: Check release version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, tomllib
+          with open('Cargo.toml', 'rb') as file:
+              version = tomllib.load(file)['package']['version']
+          assert os.environ['RELEASE_TAG'] == f'v{version}', 'Tag must match Cargo.toml version'
+          PY
+      - name: Test
+        run: cargo +stable test --locked
+      - name: Build Ubuntu static executable
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup target add x86_64-unknown-linux-musl --toolchain stable
+          cargo +stable build --release --locked --target x86_64-unknown-linux-musl
+          mkdir -p dist
+          cp target/x86_64-unknown-linux-musl/release/bibus-technopole dist/Bibus-Technopole
+          file dist/Bibus-Technopole
+          tar -czf dist/Bibus-Technopole-ubuntu-x86_64.tar.gz -C dist Bibus-Technopole -C .. README.md
+      - name: Build macOS app
+        if: runner.os == 'macOS'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+        run: |
+          cargo +stable build --release --locked
+          python3 scripts/package-macos.py
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.platform }}
+          path: dist/Bibus-Technopole-${{ matrix.platform }}.*
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --verify-tag --title "$RELEASE_TAG — macOS and Ubuntu" \
+            --notes "$(cat <<'NOTES'
+          Native menu-bar and system-tray app for the next three line 2 departures from Technopôle.
+
+          - macOS: Apple Silicon, macOS 11 or later. Unzip and open Bibus Technopole.app. White menu-bar icon; fixed Quit and other menu actions. Locally signed, not notarized by Apple.
+          - Ubuntu: Intel/AMD 64-bit. Extract the .tar.gz archive and run Bibus-Technopole. Requires curl and the Ubuntu AppIndicators extension. No Rust installation needed.
+          - English/French menus, live predictions, scheduled fallback, and automatic refresh.
+
+          Both platforms pass the unit tests before publishing. Desktop UI interaction is not automatically tested.
+          NOTES
+          )"

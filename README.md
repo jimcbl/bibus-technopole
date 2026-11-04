@@ -25,7 +25,9 @@ switch languages; the choice is saved for future launches.
 
 ## Run on Ubuntu
 
-Quit the previous version first, then open **Bibus-Technopole**. This is a
+Download `Bibus-Technopole-ubuntu-x86_64.tar.gz` from
+[Releases](https://github.com/jimcbl/bibus-technopole/releases/latest),
+extract it, and open **Bibus-Technopole**. Quit the previous version first. This is a
 standalone, statically linked Rust executable for Intel/AMD 64-bit Linux.
 No Python, Qt, GTK development packages, or Rust installation is needed.
 
@@ -41,7 +43,8 @@ registering an icon, run `./Bibus-Technopole --check`.
 
 ## macOS
 
-The Apple Silicon build is available as `dist/Bibus-Technopole-mac-arm64.zip`.
+Download `Bibus-Technopole-mac-arm64.zip` from
+[Releases](https://github.com/jimcbl/bibus-technopole/releases/latest).
 Unzip it, then open **Bibus Technopole.app**. You can move the app to
 **Applications** first. Quit any previous version before opening the new build.
 The app shows a white bus icon in the menu bar and has no Dock icon. Choose
@@ -105,3 +108,14 @@ predictions on disk.
 The app contacts only the two transport endpoints linked from the dataset.
 No account or API key is required. The Source menu item opens that dataset
 in your browser. There is no journey planning or destination arrival estimate.
+
+## Releases
+
+Pushing a version tag such as `v0.2.2` runs `.github/workflows/release.yml`.
+The tag must match the version in `Cargo.toml`. The workflow tests both
+platforms, builds an Apple Silicon macOS app and a static x86_64 Ubuntu
+executable, and publishes both archives in a GitHub release after both builds
+succeed. A manual workflow run builds downloadable artifacts without publishing.
+
+To package a local macOS release after `cargo build --release --locked`, run
+`python3 scripts/package-macos.py` (Python 3.11 or later).
